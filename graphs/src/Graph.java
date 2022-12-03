@@ -1,15 +1,18 @@
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Scanner;
-import java.util.Arrays;
 
+/**
+ * determine the max flow, min cuts, and edge flow
+ * for given graphs
+ */
 public class Graph {
     int vertexCt;  // Number of vertices in the graph.
     int[][] capacity;  // Adjacency  matrix
     int [][] available; // copy of adjacency matrix
     int[] visited; // map of which nodes have been visited
     String graphName;  //The file from which the graph was created.
-    int maxFlow = 0;
+    int maxFlow = 0;    // max flow for graph
     int[] path;        // Distance to end node
 
     public Graph() {
@@ -17,13 +20,14 @@ public class Graph {
         this.graphName = "";
     }
 
-
-    public int getVertexCt() {
-        return vertexCt;
-    }
-
+    /**
+     * add an edge of the graph between two nodes
+     * @param source start node
+     * @param destination end node
+     * @param cap max flow edge can handle
+     * @return if edge creation was successful
+     */
     public boolean addEdge(int source, int destination, int cap) {
-        //System.out.println("addEdge " + source + "->" + destination + "(" + cap + ")");
         if (source < 0 || source >= vertexCt) return false;
         if (destination < 0 || destination >= vertexCt) return false;
         capacity[source][destination] = cap;
@@ -32,6 +36,10 @@ public class Graph {
         return true;
     }
 
+    /**
+     * create a matrix representation of the graph information
+     * @return String of formatted matrix
+     */
     public String toString() {
         StringBuilder sb = new StringBuilder();
         sb.append("\nThe Graph " + graphName + " \n");
@@ -42,10 +50,14 @@ public class Graph {
             }
             sb.append("\n");
         }
-        System.out.println(sb.toString());
+        System.out.println(sb);
         return sb.toString();
     }
 
+    /**
+     * read in and process info of graph
+     * @param filename file containing graph info
+     */
     public void makeGraph(String filename) {
         try {
             graphName = filename;
@@ -69,28 +81,27 @@ public class Graph {
                     throw new Exception();
             }
             reader.close();
-            
 
             // Populate array 'path' which determines the shortest
             // nominal distance from a node to the end node
 
             // Initialize path array and set end node value to zero
             path = new int[vertexCt];
-            for(int i = 0; i < vertexCt; i++){
+            for(int i = 0; i < vertexCt; i++) {
                 path[i] = 1000;
             }
             path[vertexCt - 1] = 0;
             // Iteratively determine number of edges to end node
             int found = 0;
             int iterations = 0;
-            while(found < vertexCt - 1 && iterations < 1000){
-                iterations++;
+            while (found < vertexCt - 1 && iterations < 1000) {
+                iterations ++;
                 found = 0;
-                for(int i = vertexCt - 1; i > 0; i--){
-                    if(path[i] < 1000){
+                for (int i = vertexCt - 1; i > 0; i--) {
+                    if (path[i] < 1000) {
                         found++;
-                        for(int j = 0; j < vertexCt; j++){
-                            if((capacity[j][i] != 0) && (path[i] + 1 < path[j])) {
+                        for (int j = 0; j < vertexCt; j++) {
+                            if ((capacity[j][i] != 0) && (path[i] + 1 < path[j])) {
                                 // Add path value to upstream nodes
                                 path[j] = path[i] + 1;
                             }
@@ -104,12 +115,17 @@ public class Graph {
     }
 
 
+    /**
+     * find the shortest paths through the graph from the start point to the
+     * destination, then print a report
+     * @return 0 if current path has ended, or the max flow for the path
+     */
     public int pathFlow() {
         int[] noLoops = new int[vertexCt]; // prevent loops in path
         for (int i = 0 ; i < vertexCt ; i++) {
             noLoops[i] = 0;
         }
-        ArrayList<Integer[]> queue = new ArrayList<Integer[]>();
+        ArrayList<Integer[]> queue = new ArrayList<>();
         int i = 0;
         int max = 100;
         int score;
@@ -137,7 +153,6 @@ public class Graph {
                 if (i > 0) {
                     // back up to last connection point and check for other paths
                     Integer[] location = queue.get(queue.size() - 1);
-//                    System.out.println("backing up to " + location[1]);
                     int newI = location[0];
                     int newJ = location[1];
                     available[newI][newJ] = -available[newI][newJ];
@@ -165,10 +180,6 @@ public class Graph {
                 // move to new row for next iteration
                 i = nextNode;
             }
-            if (counter > 1000) {
-                System.out.print("oh noooooooo");
-                i = cols;
-            }
         }
 
         StringBuilder nodeList = new StringBuilder();
@@ -189,6 +200,10 @@ public class Graph {
         return max;
     }
 
+    /**
+     * find valid paths and their max flows, and print
+     * a report
+     */
     public void findFlow() {
         System.out.println("MAX FLOW:");
         int flag = 1;
@@ -210,8 +225,14 @@ public class Graph {
                 }
             }
         }
+        maxFlow = 0;
     }
 
+    /**
+     * determine which nodes are in 'r', and identify
+     * paths from nodes in r to nodes not in r for
+     * the min cuts of the graph. Print report.
+     */
     public void minR(){
         int[] r = new int[vertexCt];
         // node 0 is always in R
@@ -244,7 +265,9 @@ public class Graph {
         Graph graph0 = new Graph();
         String[] filenames = new String[] {"demands1.txt", "demands2.txt", "demands3.txt", "demands4.txt",
                 "demands5.txt", "demands6.txt", "demands7.txt"};
+
         // to test one file only
+//        System.out.println("demands1.txt");
 //        graph0.makeGraph("demands1.txt");
 //        graph0.findFlow();
 //        graph0.minR();
