@@ -7,8 +7,10 @@ public class Graph {
     int vertexCt;  // Number of vertices in the graph.
     int[][] capacity;  // Adjacency  matrix
     int [][] available; // copy of adjacency matrix
+    int[] visited; // map of which nodes have been visited
     String graphName;  //The file from which the graph was created.
     int maxFlow = 0;
+    int[] path;        // Distance to end node
 
     public Graph() {
         this.vertexCt = 0;
@@ -51,7 +53,9 @@ public class Graph {
             vertexCt = reader.nextInt();
             capacity = new int[vertexCt][vertexCt];
             available = new int[vertexCt][vertexCt];
+            visited = new int[vertexCt];
             for (int i = 0; i < vertexCt; i++) {
+                visited[i] = 0;
                 for (int j = 0; j < vertexCt; j++) {
                     capacity[i][j] = 0;
                     available[i][j] = 0;
@@ -65,37 +69,80 @@ public class Graph {
                     throw new Exception();
             }
             reader.close();
-            // added? -------------------------------------------------------
-            this.toString();
+            
+
+            // Populate array 'path' which determines the shortest
+            // nominal distance from a node to the end node
+
+            // Initialize path array and set end node value to zero
+            path = new int[vertexCt];
+            for(int i = 0; i < vertexCt; i++){
+                path[i] = 1000;
+            }
+            path[vertexCt - 1] = 0;
+            // Iteratively determine number of edges to end node
+            int found = 0;
+            int iterations = 0;
+            while(found < vertexCt - 1 && iterations < 1000){
+                iterations++;
+                found = 0;
+                for(int i = vertexCt - 1; i > 0; i--){
+                    if(path[i] < 1000){
+                        found++;
+                        for(int j = 0; j < vertexCt; j++){
+                            if((capacity[j][i] != 0) && (path[i] + 1 < path[j])) {
+                                // Add path value to upstream nodes
+                                path[j] = path[i] + 1;
+                            }
+                        }
+                    }
+                }
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    // NOTE FOR MATH; ABS VAL
 
     public int pathFlow() {
+        int[] noLoops = new int[vertexCt]; // prevent loops in path
+        for (int i = 0 ; i < vertexCt ; i++) {
+            noLoops[i] = 0;
+        }
         ArrayList<Integer[]> queue = new ArrayList<Integer[]>();
         int i = 0;
         int max = 100;
+        int score;
+        int nextNode;
         // for each row in graph
+        int counter = 0;
         int cols = available[0].length - 1;
         while (i < cols) {
-            // start at rightmost col and search left
-            int j = cols;
-            // ignore if zero or negative
-            while (available[i][j] <= 0 && j > 0) {
-                j--;
+            score = 1000;
+            nextNode = 0;
+            counter++;
+            // check all cells for non zero vals
+            for (int j = 1 ; j < vertexCt; j++) {
+                if (available[i][j] > 0) {
+                    // score based on number of times visited and distance from end
+                    int scoreTest = path[j] + visited[j] + noLoops[j];
+                    if (scoreTest < score) {
+                        nextNode = j;
+                        score = scoreTest;
+                    }
+                }
             }
-            if (j <= 0) {
+            // didn't find anything
+            if (nextNode <= 0) {
                 if (i > 0) {
-                    // didn't find anything, doesn't connect
                     // back up to last connection point and check for other paths
                     Integer[] location = queue.get(queue.size() - 1);
+//                    System.out.println("backing up to " + location[1]);
                     int newI = location[0];
                     int newJ = location[1];
                     available[newI][newJ] = -available[newI][newJ];
                     max = location[2];
+                    noLoops[newJ] = 0;
 
                     queue.remove(queue.size() - 1);
                     // reset loop
@@ -106,16 +153,21 @@ public class Graph {
                 }
             } else {
                 // add to queue
-                Integer[] temp = new Integer[] {i, j, max};
+                Integer[] temp = new Integer[] {i, nextNode, max};
                 queue.add(temp);
+                noLoops[nextNode] = 1000;
 
                 // check if new max
-                if (available[i][j] < max) {
-                    max = available[i][j];
+                if (available[i][nextNode] < max) {
+                    max = available[i][nextNode];
                 }
 
                 // move to new row for next iteration
-                i = j;
+                i = nextNode;
+            }
+            if (counter > 1000) {
+                System.out.print("oh noooooooo");
+                i = cols;
             }
         }
 
@@ -129,6 +181,7 @@ public class Graph {
             int newJ = location[1];
             available[newI][newJ] -= max;
             nodeList.append(", " + newJ);
+            visited[newI]++;
         }
         System.out.println("Found flow " + max + ": " + nodeList);
         queue.clear();
@@ -184,13 +237,24 @@ public class Graph {
                 }
             }
         }
+        System.out.println();
     }
 
     public static void main(String[] args) {
         Graph graph0 = new Graph();
-        // put in text name, was empty before
-        graph0.makeGraph("demands2.txt");
-        graph0.findFlow();
-        graph0.minR();
+        String[] filenames = new String[] {"demands1.txt", "demands2.txt", "demands3.txt", "demands4.txt",
+                "demands5.txt", "demands6.txt", "demands7.txt"};
+        // to test one file only
+//        graph0.makeGraph("demands1.txt");
+//        graph0.findFlow();
+//        graph0.minR();
+
+        // to test all files
+        for (String filename : filenames) {
+            System.out.println(filename);
+            graph0.makeGraph(filename);
+            graph0.findFlow();
+            graph0.minR();
+        }
     }
 }
